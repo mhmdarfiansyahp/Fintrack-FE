@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, h } from 'vue'
 import { NButton, NDataTable, NModal, NInput, NSelect, NSpace, NPagination, NIcon } from 'naive-ui'
 import { PlusCircle, Edit3, Trash2, X } from 'lucide-vue-next'
+
 import Swal from 'sweetalert2'
 import CategoryService from '@/Service/category'
 
@@ -10,6 +11,7 @@ const loading = ref(false)
 const search = ref('')
 const page = ref(1)
 const pageSize = ref(5)
+const selected = ref([])
 
 const showModal = ref(false)
 const isEditMode = ref(false)
@@ -25,7 +27,10 @@ const pageCount = computed(() => Math.max(1, Math.ceil(filtered.value.length / p
 
 const paged = computed(() => {
   const start = (page.value - 1) * pageSize.value
-  return filtered.value.slice(start, start + pageSize.value)
+  return filtered.value.slice(start, start + pageSize.value).map((item, index) => ({
+    ...item,
+    no: start + index + 1 // nomor urut otomatis
+  }))
 })
 
 // ---- CRUD ----
@@ -66,13 +71,21 @@ const handleSubmit = async () => {
   try {
     if (isEditMode.value) {
       await CategoryService.update(form.value.id, form.value)
-      Swal.fire('Success', 'Category updated successfully.', 'success')
     } else {
       await CategoryService.create(form.value)
-      Swal.fire('Success', 'Category added successfully.', 'success')
     }
+
     await fetchCategories()
-    closeModal()
+
+    showModal.value = false
+    await nextTick() // tunggu DOM update
+    await new Promise(resolve => setTimeout(resolve, 250)) // tunggu animasi 250ms
+    Swal.fire({
+      icon: 'success',
+      title: isEditMode.value ? 'Category updated successfully.' : 'Category added successfully.',
+      showConfirmButton: false, // tombol OK tidak ditampilkan
+      timer: 1500, // otomatis hilang setelah 1.5 detik
+    })
   } catch (error) {
     Swal.fire('Error', 'Failed to save category.', 'error')
   }
@@ -93,92 +106,23 @@ const handleDelete = async (id) => {
     try {
       await CategoryService.delete(id)
       await fetchCategories()
-      Swal.fire('Deleted!', 'Category has been deleted.', 'success')
+      Swal.fire({
+        icon: 'success',
+        title: 'Category has been deleted.',
+        showConfirmButton: false, // tombol OK tidak ditampilkan
+        timer: 1500, // otomatis hilang setelah 1.5 detik
+      })
     } catch {
       Swal.fire('Error', 'Failed to delete category.', 'error')
     }
   }
 }
 
-const allSelected = ref(false)
-
-// Modifikasi columns
-const columns = [
-  {
-    title: h('input', {
-      type: 'checkbox',
-      checked: allSelected.value,
-      onChange: (e) => {
-        allSelected.value = e.target.checked
-        paged.value.forEach((row) => (row.selected = e.target.checked))
-      },
-      class: 'cursor-pointer',
-    }),
-    key: 'select',
-    width: 40,
-    render: (row) =>
-      h('input', {
-        type: 'checkbox',
-        checked: row.selected || false,
-        onChange: (e) => {
-          row.selected = e.target.checked
-          // Update allSelected otomatis
-          allSelected.value = paged.value.every((r) => r.selected)
-        },
-        class: 'cursor-pointer',
-      }),
-  },
-  {
-    title: 'No',
-    key: 'no',
-    render: (_, index) => (page.value - 1) * pageSize.value + index + 1,
-    width: 60,
-  },
-  {
-    title: 'Name',
-    key: 'name',
-  },
-  {
-    title: 'Type',
-    key: 'type',
-    render: (row) =>
-      h(
-        'span',
-        {
-          class: row.type === 'income' ? 'text-green-600 font-medium' : 'text-red-600 font-medium',
-        },
-        row.type,
-      ),
-  },
-  {
-    title: 'Actions',
-    key: 'actions',
-    render: (row) =>
-      h('div', { class: 'flex items-center gap-2' }, [
-        h(
-          NButton,
-          {
-            size: 'small',
-            class: 'bg-blue-600 text-white rounded-md',
-            onClick: () => openEditModal(row),
-          },
-          { icon: () => h(Edit3, { size: 16 }), default: () => 'Edit' },
-        ),
-        h(
-          NButton,
-          {
-            size: 'small',
-            style: {
-              backgroundColor: '#E74C3C',
-              color: 'white',
-              borderRadius: '0.375rem',
-            },
-            onClick: () => handleDelete(row.id),
-          },
-          { icon: () => h(Trash2, { size: 16 }), default: () => 'Delete' },
-        ),
-      ]),
-  },
+const headers = [
+  { text: "No", value: "no", width: 60 },
+  { text: "Name", value: "name" },
+  { text: "Type", value: "type" },
+  { text: "Actions", value: "actions" },
 ]
 
 onMounted(fetchCategories)
@@ -191,7 +135,9 @@ onMounted(fetchCategories)
       <p class="text-2xl font-bold">Categories</p>
       <NButton :style="{ backgroundColor: '#105472', color: 'white' }" @click="openAddModal">
         <template #icon>
-          <NIcon><PlusCircle /></NIcon>
+          <NIcon>
+            <PlusCircle />
+          </NIcon>
         </template>
         Add Category
       </NButton>
@@ -201,18 +147,37 @@ onMounted(fetchCategories)
     <div class="flex justify-end">
       <NInput v-model:value="search" placeholder="Search..." clearable style="width: 220px" />
     </div>
+    <div class="bg-white rounded shadow-sm overflow-x-auto p-4 border-radius-md">
 
-    <div class="bg-white rounded shadow-sm overflow-hidden p-4 border-radius-md">
-      <NDataTable :columns="columns" :data="paged" size="medium" />
+      <EasyDataTable :headers="headers" :items="paged" table-class-name="table-custom" hide-footer checkbox
+        v-model:items-selected="selected" :loading="loading">
+
+        <template #item-type="{ type }">
+          <span :class="type === 'income' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+            {{ type }}
+          </span>
+        </template>
+
+        <template #item-actions="{ id, ...row }">
+          <div class="flex gap-2 items-center"> <!-- agar horizontal -->
+            <button class="px-2 py-1 bg-blue-600 text-white rounded flex items-center gap-1"
+              @click="openEditModal({ ...row, id })">
+              <Edit3 size="16" /> Edit
+            </button>
+
+            <button class="px-2 py-1 bg-red-600 text-white rounded flex items-center gap-1" @click="handleDelete(id)">
+              <Trash2 size="16" /> Delete
+            </button>
+          </div>
+        </template>
+
+      </EasyDataTable>
+
     </div>
+
     <!-- Modal -->
-    <NModal
-      v-model:show="showModal"
-      preset="card"
-      :mask-closable="false"
-      :title="isEditMode ? 'Edit Category' : 'Add Category'"
-      style="width: 400px"
-    >
+    <NModal v-model:show="showModal" preset="card" :mask-closable="false"
+      :title="isEditMode ? 'Edit Category' : 'Add Category'" style="width: 400px">
       <div class="space-y-3">
         <div>
           <label class="block text-sm font-medium mb-1">Category Name</label>
@@ -221,13 +186,10 @@ onMounted(fetchCategories)
 
         <div>
           <label class="block text-sm font-medium mb-1">Type</label>
-          <NSelect
-            v-model:value="form.type"
-            :options="[
-              { label: 'Income', value: 'income' },
-              { label: 'Expense', value: 'expense' },
-            ]"
-          />
+          <NSelect v-model:value="form.type" :options="[
+            { label: 'Income', value: 'income' },
+            { label: 'Expense', value: 'expense' },
+          ]" />
         </div>
 
         <div class="flex justify-end gap-2 mt-4">
@@ -244,3 +206,24 @@ onMounted(fetchCategories)
     <NPagination v-model:page="page" :page-count="pageCount" />
   </div>
 </template>
+
+<style>
+/* untuk kolom checkbox pada EasyDataTable */
+.table-custom th:first-child,
+.table-custom td:first-child {
+  width: 45px !important;
+  /* bebas ubah misal 30, 40 */
+  max-width: 45px !important;
+  text-align: center;
+}
+
+.table-custom {
+  --easy-table-header-background-color: #e5e7eb;
+  --easy-table-header-font-size: 15px;
+
+  --easy-table-body-row-font-size: 13px;
+
+  --easy-table-body-row-height: 48px;
+  font-family: v-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+}
+</style>

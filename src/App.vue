@@ -1,13 +1,15 @@
 <template>
-  <div class="flex min-h-screen">
+  <div class="flex min-h-screen overflow-hidden"> <!-- cegah body ikut geser -->
     <!-- Sidebar -->
-    <Sidebar :isOpen="isSidebarOpen" :windowWidth="windowWidth" />
+    <Sidebar :isOpen="isSidebarOpen" :windowWidth="windowWidth" v-model:isOpen="isSidebarOpen"/>
 
     <!-- Main Content -->
     <div
       :class="[
-        'flex-1 transition-all duration-300',
-        windowWidth >= 1024 ? (isSidebarOpen ? 'ml-64' : 'ml-20') : 'ml-0',
+        'flex flex-col flex-1 transition-all duration-300 min-w-0', // min-w-0 penting!
+        windowWidth >= 1024
+          ? (isSidebarOpen ? 'ml-64' : 'ml-20')
+          : 'ml-0',
       ]"
     >
       <Navbar
@@ -16,12 +18,13 @@
         @toggleSidebar="toggleSidebar"
       />
 
-      <main class="p-6 mt-14 overflow-x-auto">
-          <NConfigProvider>
-
-        <router-view />
-          </NConfigProvider>
-
+      <!-- konten tidak boleh overflow-x, biarkan anaknya yang scroll -->
+      <main class="p-4 mt-14 w-full overflow-hidden">
+        <NConfigProvider>
+          <div class="w-full overflow-x-auto"> <!-- container scroll -->
+            <router-view />
+          </div>
+        </NConfigProvider>
       </main>
     </div>
   </div>
@@ -38,11 +41,7 @@ const windowWidth = ref(window.innerWidth)
 
 function handleResize() {
   windowWidth.value = window.innerWidth
-  if (windowWidth.value < 1024) {
-    isSidebarOpen.value = false
-  } else {
-    isSidebarOpen.value = true
-  }
+  isSidebarOpen.value = windowWidth.value >= 1024 // auto collapse saat kecil
 }
 
 function toggleSidebar() {
@@ -58,3 +57,10 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
 })
 </script>
+
+<style>
+/* mencegah geser halaman */
+html, body {
+  overflow-x: hidden;
+}
+</style>
