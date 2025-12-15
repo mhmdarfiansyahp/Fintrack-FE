@@ -34,7 +34,7 @@ const handleLinkClick = () => {
         : '-translate-x-full w-64'
       : props.isOpen
         ? 'w-64'
-        : 'w-20'//fungsionalitas collapse sidebar sda,
+        : 'w-20'//fungsionalitas collapse sidebar sda dsa,
   ]">
     <!-- Logo -->
     <div class="p-4 text-xl font-bold border-b flex items-center justify-center">
