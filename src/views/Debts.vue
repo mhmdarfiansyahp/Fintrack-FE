@@ -1,8 +1,192 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import Swal from 'sweetalert2'
+import { PlusCircle, Edit3, Trash2, X } from 'lucide-vue-next'
+import DebtsService from '@/Service/debts'
+
+// State utama
+const debts = ref([])
+const loading = ref(false)
+const search = ref('')
+const page = ref(1)
+const pageSize = ref(5)
+const selected = ref([])
+
+const errors = ref({
+  person_name: false,
+  type: false,
+})
+const showModal = ref(false)
+const isEditMode = ref(false)
+const form = ref({
+  id: null,
+  person_name: '',
+  type: 'debt',
+  amount: 0,
+  due_date: '',
+  status: 'pending',
+})
+
+const filtered = computed(() => {
+  if (!search.value) return debts.value
+  return debts.value.filter((d) => d.person_name.toLowerCase().includes(search.value.toLowerCase()))
+})
+
+const pageCount = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize.value)))
+
+const paged = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return filtered.value.slice(start, start + pageSize.value).map((item, index) => ({
+    ...item,
+    no: start + index + 1, // nomor urut otomatis
+  }))
+})
+
+const fetchDebts = async () => {
+  loading.value = true
+  try {
+    const res = await DebtsService.getAll()
+    debts.value = res.data.data || res.data
+  } catch (error) {
+    console.error(error)
+    Swal.fire('Error', 'Failed to load debts', 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const openAddModal = () => {
+  isEditMode.value = false
+  form.value = {
+    id: null,
+    person_name: '',
+    type: 'debt',
+    amount: 0,
+    due_date: '',
+    status: 'pending',
+  }
+  showModal.value = true
+}
+
+const openEditModal = (debt) => {
+  isEditMode.value = true
+  form.value = { ...debt }
+  showModal.value = true
+}
+
+const closeModal = () => {
+  showModal.value = false
+}
+
+const handleSubmit = async () => {
+  errors.value.person_name = false
+  errors.value.type = false
+
+  if (!isEditMode.value) {
+    if (!form.value.person_name?.trim()) {
+      errors.value.person_name = true
+      return
+    }
+
+    if (!form.value.type) {
+      errors.value.type = true
+      return
+    }
+  }
+
+  try {
+    if (isEditMode.value) {
+      await DebtsService.update(form.value.id, form.value)
+    } else {
+      await DebtsService.create(form.value)
+    }
+
+    await fetchDebts()
+
+    showModal.value = false
+    await nextTick()
+    await new Promise((resolve) => setTimeout(resolve, 250))
+    Swal.fire({
+      icon: 'success',
+      title: isEditMode.value ? 'Debt updated successfully.' : 'Debt added successfully.',
+      showConfirmButton: false, // tombol OK tidak ditampilkan
+      timer: 1500, // otomatis hilang setelah 1.5 detik
+    })
+  } catch (error) {
+    Swal.fire('Error', 'Failed to save debt.', 'error')
+  }
+}
+
+// 🔹 Delete data
+const handleDelete = async (id) => {
+  const result = await Swal.fire({
+    title: 'Are you sure?',
+    text: 'This debt will be deleted!',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Yes, delete it!',
+  })
+
+  if (result.isConfirmed) {
+    try {
+      await DebtsService.delete(id)
+      await fetchDebts()
+      Swal.fire({
+        icon: 'success',
+        title: 'Debt has been deleted.',
+        showConfirmButton: false, // tombol OK tidak ditampilkan
+        timer: 1500, // otomatis hilang setelah 1.5 detik
+      })
+    } catch {
+      Swal.fire('Error', 'Failed to delete debt.', 'error')
+    }
+  }
+}
+
+const headers = [
+  { text: 'No', value: 'no', width: 60 },
+  { text: 'Name', value: 'name' },
+  { text: 'Type', value: 'type' },
+  { text: 'Amount', value: 'amount' },
+  { text: 'Date', value: 'date' },
+  { text: 'Status', value: 'status' },
+  { text: 'Note', value: 'note' },
+  { text: 'Actions', value: 'actions' },
+]
+
+onMounted(fetchDebts)
+
+// const formatDate = (date) => {
+//   if (!date) return '-'
+//   const d = new Date(date)
+//   if (!isNaN(d)) {
+//     return d.toLocaleDateString('id-ID', {
+//       day: '2-digit',
+//       month: 'short',
+//       year: 'numeric',
+//     })
+//   }
+
+//   const parts = date.split('-')
+//   if (parts.length === 3) {
+//     const [day, month, year] = parts
+//     const fixed = new Date(`${year}-${month}-${day}`)
+//     return isNaN(fixed)
+//       ? '-'
+//       : fixed.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+//   }
+
+//   return '-'
+// }
+</script>
+
 <template>
-  <div class="p-6 space-y-6 bg-white shadow-md rounded-lg">
+  <div class="p-4 sm:p-6 bg-white shadow-md rounded-lg space-y-5">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-      <h1 class="text-lg font-semibold text-blue-700">List Debts</h1>
+    <div class="flex justify-between items-center">
+      <h1 class="text-2xl font-semibold text-blue-700">List Debts</h1>
       <button
         class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
         @click="openAddModal"
@@ -292,182 +476,3 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import Swal from 'sweetalert2'
-import { PlusCircle, Edit3, Trash2, X } from 'lucide-vue-next'
-import DebtsService from '@/Service/debts'
-
-// State utama
-const categories = ref([])
-const loading = ref(false)
-
-// Pagination & search
-const search = ref('')
-const rowsPerPage = ref(5)
-const currentPage = ref(1)
-
-const filteredCategories = computed(() => {
-  if (!search.value) return categories.value
-  return categories.value.filter((c) => c.name.toLowerCase().includes(search.value.toLowerCase()))
-})
-const totalPages = computed(() => Math.ceil(filteredCategories.value.length / rowsPerPage.value))
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * rowsPerPage.value
-  return filteredCategories.value.slice(start, start + rowsPerPage.value)
-})
-
-// Modal logic
-const showModal = ref(false)
-const isEditMode = ref(false)
-const isSubmitting = ref(false)
-const form = ref({
-  id: null,
-  person_name: '',
-  type: 'debt',
-  amount: 0,
-  due_date: '',
-  status: 'pending',
-})
-
-const openAddModal = () => {
-  isEditMode.value = false
-  form.value = {
-    id: null,
-    person_name: '',
-    type: 'debt',
-    amount: 0,
-    due_date: '',
-    status: 'pending',
-  }
-  showModal.value = true
-}
-
-const openEditModal = (debt) => {
-  isEditMode.value = true
-  form.value = { ...debt }
-  showModal.value = true
-}
-
-const closeModal = () => {
-  showModal.value = false
-}
-
-// 🔹 Load data dari backend
-const fetchDebts = async () => {
-  loading.value = true
-  try {
-    const res = await DebtsService.getAll()
-    categories.value = res.data.data || res.data
-  } catch (error) {
-    console.error(error)
-    Swal.fire('Error', 'Failed to load debts', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 🔹 Submit form
-const handleSubmit = async () => {
-  if (isSubmitting.value) return
-  if (!form.value.person_name.trim()) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Oops!',
-      text: 'Please fill in debt name.',
-      timer: 1500,
-      showConfirmButton: false,
-    })
-    return
-  }
-
-  try {
-    isSubmitting.value = true
-    if (isEditMode.value) {
-      await DebtsService.update(form.value.id, form.value)
-      Swal.fire({
-        icon: 'success',
-        title: 'Debt updated successfully!',
-        timer: 1500,
-        showConfirmButton: false,
-        position: 'top-end',
-        toast: true,
-      })
-    } else {
-      await DebtsService.create(form.value)
-      Swal.fire({
-        icon: 'success',
-        title: 'Debt added successfully!',
-        timer: 1500,
-        showConfirmButton: false,
-        position: 'top-end',
-        toast: true,
-      })
-    }
-
-    await fetchDebts()
-    closeModal()
-  } catch (error) {
-    console.error(error)
-    Swal.fire({
-      icon: 'error',
-      title: 'Something went wrong!',
-      timer: 1800,
-      showConfirmButton: false,
-    })
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-// 🔹 Delete data
-const handleDelete = async (id) => {
-  const result = await Swal.fire({
-    title: 'Are you sure?',
-    text: 'This category will be deleted!',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    cancelButtonColor: '#6b7280',
-    confirmButtonText: 'Yes, delete it!',
-  })
-
-  if (result.isConfirmed) {
-    try {
-      await DebtsService.delete(id)
-      await fetchDebts()
-      Swal.fire('Deleted!', 'Category has been deleted.', 'success')
-    } catch (error) {
-      console.error(error)
-      Swal.fire('Error', 'Failed to delete category.', 'error')
-    }
-  }
-}
-
-// 🔹 Load data pertama kali
-onMounted(fetchDebts)
-
-const formatDate = (date) => {
-  if (!date) return '-'
-  const d = new Date(date)
-  if (!isNaN(d)) {
-    return d.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
-  }
-
-  const parts = date.split('-')
-  if (parts.length === 3) {
-    const [day, month, year] = parts
-    const fixed = new Date(`${year}-${month}-${day}`)
-    return isNaN(fixed)
-      ? '-'
-      : fixed.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
-  }
-
-  return '-'
-}
-</script>

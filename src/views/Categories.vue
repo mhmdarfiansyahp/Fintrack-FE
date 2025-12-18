@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted, h } from 'vue'
-import { NButton, NDataTable, NModal, NInput, NSelect, NSpace, NPagination, NIcon } from 'naive-ui'
+import { ref, computed, onMounted } from 'vue'
+import { NButton, NModal, NInput, NSelect, NSpace, NPagination, NIcon } from 'naive-ui'
 import { PlusCircle, Edit3, Trash2, X } from 'lucide-vue-next'
 
 import Swal from 'sweetalert2'
@@ -13,6 +13,10 @@ const page = ref(1)
 const pageSize = ref(5)
 const selected = ref([])
 
+const errors = ref({
+  name: false,
+  type: false,
+})
 const showModal = ref(false)
 const isEditMode = ref(false)
 const form = ref({ id: null, name: '', type: 'income' })
@@ -29,7 +33,7 @@ const paged = computed(() => {
   const start = (page.value - 1) * pageSize.value
   return filtered.value.slice(start, start + pageSize.value).map((item, index) => ({
     ...item,
-    no: start + index + 1 // nomor urut otomatis
+    no: start + index + 1, // nomor urut otomatis
   }))
 })
 
@@ -63,9 +67,19 @@ const closeModal = () => {
 }
 
 const handleSubmit = async () => {
-  if (!form.value.name.trim()) {
-    Swal.fire('Oops!', 'Please fill in category name.', 'warning')
-    return
+  errors.value.name = false
+  errors.value.type = false
+
+  if (!isEditMode.value) {
+    if (!form.value.name?.trim()) {
+      errors.value.name = true
+      return
+    }
+
+    if (!form.value.type) {
+      errors.value.type = true
+      return
+    }
   }
 
   try {
@@ -79,7 +93,7 @@ const handleSubmit = async () => {
 
     showModal.value = false
     await nextTick() // tunggu DOM update
-    await new Promise(resolve => setTimeout(resolve, 250)) // tunggu animasi 250ms
+    await new Promise((resolve) => setTimeout(resolve, 250)) // tunggu animasi 250ms
     Swal.fire({
       icon: 'success',
       title: isEditMode.value ? 'Category updated successfully.' : 'Category added successfully.',
@@ -119,10 +133,10 @@ const handleDelete = async (id) => {
 }
 
 const headers = [
-  { text: "No", value: "no", width: 60 },
-  { text: "Name", value: "name" },
-  { text: "Type", value: "type" },
-  { text: "Actions", value: "actions" },
+  { text: 'No', value: 'no', width: 60 },
+  { text: 'Name', value: 'name' },
+  { text: 'Type', value: 'type' },
+  { text: 'Actions', value: 'actions' },
 ]
 
 onMounted(fetchCategories)
@@ -132,7 +146,7 @@ onMounted(fetchCategories)
   <div class="p-4 sm:p-6 bg-white shadow-md rounded-lg space-y-5">
     <!-- Header -->
     <div class="flex justify-between items-center">
-      <p class="text-2xl font-bold">Categories</p>
+      <p class="text-2xl font-semibold text-blue-700">Categories</p>
       <NButton :style="{ backgroundColor: '#105472', color: 'white' }" @click="openAddModal">
         <template #icon>
           <NIcon>
@@ -148,48 +162,77 @@ onMounted(fetchCategories)
       <NInput v-model:value="search" placeholder="Search..." clearable style="width: 220px" />
     </div>
     <div class="bg-white rounded shadow-sm overflow-x-auto p-4 border-radius-md">
-
-      <EasyDataTable :headers="headers" :items="paged" table-class-name="table-custom" hide-footer checkbox
-        v-model:items-selected="selected" :loading="loading">
-
+      <EasyDataTable
+        :headers="headers"
+        :items="paged"
+        table-class-name="table-custom"
+        hide-footer
+        checkbox
+        v-model:items-selected="selected"
+        :loading="loading"
+      >
         <template #item-type="{ type }">
-          <span :class="type === 'income' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+          <span
+            :class="
+              type === 'income' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'
+            "
+          >
             {{ type }}
           </span>
         </template>
 
         <template #item-actions="{ id, ...row }">
-          <div class="flex gap-2 items-center"> <!-- agar horizontal -->
-            <button class="px-2 py-1 bg-blue-600 text-white rounded flex items-center gap-1"
-              @click="openEditModal({ ...row, id })">
+          <div class="flex gap-2 items-center">
+            <!-- agar horizontal -->
+            <button
+              class="px-2 py-1 bg-blue-600 text-white rounded flex items-center gap-1"
+              @click="openEditModal({ ...row, id })"
+            >
               <Edit3 size="16" /> Edit
             </button>
 
-            <button class="px-2 py-1 bg-red-600 text-white rounded flex items-center gap-1" @click="handleDelete(id)">
+            <button
+              class="px-2 py-1 bg-red-600 text-white rounded flex items-center gap-1"
+              @click="handleDelete(id)"
+            >
               <Trash2 size="16" /> Delete
             </button>
           </div>
         </template>
-
       </EasyDataTable>
-
     </div>
 
     <!-- Modal -->
-    <NModal v-model:show="showModal" preset="card" :mask-closable="false"
-      :title="isEditMode ? 'Edit Category' : 'Add Category'" style="width: 400px">
+    <NModal
+      v-model:show="showModal"
+      preset="card"
+      :mask-closable="false"
+      :title="isEditMode ? 'Edit Category' : 'Add Category'"
+      style="width: 400px"
+    >
       <div class="space-y-3">
         <div>
-          <label class="block text-sm font-medium mb-1">Category Name</label>
-          <NInput v-model:value="form.name" placeholder="Enter category name" />
+          <label class="block text-sm font-medium mb-1"
+            >Category Name
+            <span v-if="!isEditMode" class="text-red-500">*</span>
+          </label>
+          <NInput
+            v-model:value="form.name"
+            placeholder="Enter category name"
+            :status="errors.name ? 'error' : undefined"
+          />
         </div>
 
         <div>
           <label class="block text-sm font-medium mb-1">Type</label>
-          <NSelect v-model:value="form.type" :options="[
-            { label: 'Income', value: 'income' },
-            { label: 'Expense', value: 'expense' },
-          ]" />
+          <NSelect
+            v-model:value="form.type"
+            :options="[
+              { label: 'Income', value: 'income' },
+              { label: 'Expense', value: 'expense' },
+            ]"
+            :status="errors.type ? 'error' : undefined"
+          />
         </div>
 
         <div class="flex justify-end gap-2 mt-4">
@@ -224,6 +267,15 @@ onMounted(fetchCategories)
   --easy-table-body-row-font-size: 13px;
 
   --easy-table-body-row-height: 48px;
-  font-family: v-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+  font-family:
+    v-sans,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif,
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol' !important;
 }
 </style>
