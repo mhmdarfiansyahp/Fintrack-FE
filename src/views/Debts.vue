@@ -205,7 +205,7 @@ onMounted(fetchDebts)
   <div class="p-4 sm:p-6 bg-white shadow-md rounded-lg space-y-5">
     <!-- Header -->
     <div class="flex justify-between items-center">
-      <h1 class="text-2xl font-semibold text-blue-700">List Debts</h1>
+      <h1 class="text-2xl font-semibold text-blue-700">Debts</h1>
       <NButton :style="{ backgroundColor: '#105472', color: 'white' }" @click="openAddModal">
         <template #icon>
           <NIcon>
