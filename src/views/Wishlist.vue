@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import Swal from 'sweetalert2'
-import { PlusCircle, Edit3, Trash2, X } from 'lucide-vue-next'
+import { PlusCircle, Edit3, Trash2 } from 'lucide-vue-next'
 import WishlistService from '@/Service/wishlist'
 import { NButton, NInput, NModal } from 'naive-ui'
 
@@ -77,6 +77,18 @@ const formatRupiah = (value) =>
     maximumFractionDigits: 0
   }).format(value)
 
+const formatDateLocal = (date) => {
+  if (!date) return null
+  const d = new Date(date)
+
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+
 const openAddModal = () => {
   isEditMode.value = false
   resetErrors()
@@ -141,9 +153,8 @@ const handleSubmit = async () => {
 
   const payload = {
     ...form.value,
-    target_date: form.value.target_date
-      ? new Date(form.value.target_date).toISOString().slice(0, 10)
-      : null,
+    target_date: formatDateLocal(form.value.target_date),
+
   }
 
   try {

@@ -84,6 +84,17 @@ const formatRupiah = (value) =>
     maximumFractionDigits: 0
   }).format(value)
 
+const formatDateLocal = (date) => {
+  if (!date) return null
+  const d = new Date(date)
+
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
 const openAddModal = () => {
   isEditMode.value = false
   resetErrors()
@@ -131,9 +142,8 @@ const handleSubmit = async () => {
 
   const payload = {
     ...form.value,
-    due_date: form.value.due_date
-      ? new Date(form.value.due_date).toISOString().slice(0, 10)
-      : null,
+    due_date: formatDateLocal(form.value.due_date),
+
   }
 
   try {

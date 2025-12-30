@@ -4,6 +4,7 @@ import Categories from '@/views/Categories.vue'
 import Transaction from '@/views/Transaction.vue'
 import Debts from '@/views/Debts.vue'
 import Wishlist from '@/views/Wishlist.vue'
+import Invesment from '@/views/Invesment.vue'
 
 const routes = [
   {
@@ -30,6 +31,11 @@ const routes = [
     path: '/wishlists',
     name: 'Wishlist',
     component: Wishlist
+  },
+  {
+    path: '/invesments',
+    name: 'Invesment',
+    component: Invesment
   }
 ]
 

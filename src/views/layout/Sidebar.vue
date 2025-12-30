@@ -99,10 +99,15 @@ const handleLinkClick = () => {
         </div>
       </RouterLink>
 
-      <RouterLink to="/investments" class="flex items-center text-gray-700 hover:bg-gray-100 transition"
-        :class="props.isOpen || props.windowWidth < 1024 ? 'px-4 py-2' : 'justify-center py-3'">
-        <PiggyBank class="w-5 h-5" />
-        <span v-if="props.isOpen || props.windowWidth < 1024" class="ml-3">Investments</span>
+      <RouterLink to="/invesments" v-slot="{ isActive }">
+        <div @click="handleLinkClick" :class="[
+          'flex items-center transition cursor-pointer',
+          isActive ? 'bg-gray-200 font-medium text-gray-900' : 'text-gray-700 hover:bg-gray-100',
+          props.isOpen || props.windowWidth < 1024 ? 'px-4 py-2' : 'justify-center py-3',
+        ]">
+          <PiggyBank class="w-5 h-5" />
+          <span v-if="props.isOpen || props.windowWidth < 1024" class="ml-3">Investments</span>
+        </div>
       </RouterLink>
 
       <!-- <RouterLink
