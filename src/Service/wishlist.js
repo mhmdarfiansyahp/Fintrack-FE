@@ -16,4 +16,7 @@ export default {
   delete(id) {
     return api.delete(`/wishlist/${id}`)
   },
+  getTopWishlist() { 
+    return api.get('/wishlist/top')
+  }
 }

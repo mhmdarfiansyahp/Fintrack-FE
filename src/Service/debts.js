@@ -1,3 +1,4 @@
+import { getScrollTop } from 'naive-ui/es/affix/src/utils'
 import api from './api'
 
 export default {
@@ -16,4 +17,7 @@ export default {
   delete(id) {
     return api.delete(`/debts/${id}`)
   },
+  getTopDebts() { 
+    return api.get('/debts/top')
+  }
 }

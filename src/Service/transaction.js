@@ -16,4 +16,11 @@ export default {
   delete(id) {
     return api.delete(`/transactions/${id}`)
   },
+  getWeekly() {
+    return api.get('/transactions/weekly')
+  },
+  getExpenseCategories() {
+    return api.get('/transactions/expense-categories')
+  }
+
 }

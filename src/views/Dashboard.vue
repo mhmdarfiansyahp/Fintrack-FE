@@ -11,20 +11,16 @@
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
           <label class="text-gray-600 font-medium text-sm">Month:</label>
-          <select
-            v-model="selectedMonth"
-            class="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-1 focus:ring-green-500 focus:outline-none"
-          >
+          <select v-model="selectedMonth"
+            class="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-1 focus:ring-green-500 focus:outline-none">
             <option v-for="month in months" :key="month" :value="month">{{ month }}</option>
           </select>
         </div>
 
         <div class="flex items-center gap-2">
           <label class="text-gray-600 font-medium text-sm">Week:</label>
-          <select
-            v-model="selectedWeek"
-            class="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-1 focus:ring-green-500 focus:outline-none"
-          >
+          <select v-model="selectedWeek"
+            class="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-1 focus:ring-green-500 focus:outline-none">
             <option v-for="week in weeks" :key="week" :value="week">{{ week }}</option>
           </select>
         </div>
@@ -80,8 +76,10 @@
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="item in debts" :key="item.id">
-              <td class="px-4 py-2">{{ item.name }}</td>
-              <td class="px-4 py-2">${{ item.amount }}</td>
+              <td class="px-4 py-2">{{ item.person_name }}</td>
+              <td class="px-4 py-2">
+                Rp {{ Number(item.amount).toLocaleString('id-ID') }}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -99,7 +97,7 @@
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="item in wishlist" :key="item.id">
-              <td class="px-4 py-2">{{ item.name }}</td>
+              <td class="px-4 py-2">{{ item.item_name }}</td>
               <td class="px-4 py-2">{{ item.progress }}%</td>
             </tr>
           </tbody>
@@ -154,6 +152,9 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import ApexCharts from 'apexcharts';
+import transactionService from '@/Service/transaction'
+import debtServices from '@/Service/debts';
+import wishlistService from '@/Service/wishlist';
 
 // Filters
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
@@ -168,15 +169,28 @@ const balance = ref(dailyIncome.value - dailyExpense.value);
 const savingsRate = ref(Math.round((balance.value / dailyIncome.value) * 100));
 
 // Quick lists
-const debts = ref([
-  { id: 1, name: 'Credit Card A', amount: 500 },
-  { id: 2, name: 'Friend Loan', amount: 200 }
-]);
+const debts = ref([])
 
-const wishlist = ref([
-  { id: 1, name: 'New Laptop', progress: 50 },
-  { id: 2, name: 'Bicycle', progress: 30 }
-]);
+const fetchDebts = async () => {
+  try {
+    const res = await debtServices.getTopDebts() 
+    debts.value = res.data.data
+  } catch (err) {
+    console.error('Failed to fetch debts', err)
+  }
+}
+
+const wishlist = ref([]);
+
+const fetchWishlist = async () => {
+  try {
+    const res = await wishlistService.getTopWishlist();
+    wishlist.value = res.data.data;
+  } catch (err) {
+    console.error('Failed to fetch wishlist', err);
+  }
+};
+
 
 const stocks = ref([
   { symbol: 'AAPL', name: 'Apple', value: 150 },
@@ -191,70 +205,129 @@ const mutualFunds = ref([
 // Chart refs
 const lineChart = ref(null);
 const donutChart = ref(null);
+const expenseCategories = ref([])
 let lineApex = null;
 let donutApex = null;
 
-// Dummy chart data
-const weeklyData = {
-  income: [20, 25, 18, 22, 21, 23, 20],
-  expenses: [15, 18, 16, 20, 19, 17, 18],
-  categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-};
+const weeklyData = ref({
+  income: [],
+  expenses: [],
+  categories: []
+})
 
-const expenseCategories = [
-  { name: 'Food', value: 40 },
-  { name: 'Transport', value: 25 },
-  { name: 'Entertainment', value: 15 },
-  { name: 'Others', value: 20 }
-];
+const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-// Function to update charts
+
 const updateCharts = () => {
-  // Line chart
-  const lineOptions = {
-    chart: { type: 'line', height: 300, toolbar: { show: false } },
-    series: [
-      { name: 'Income', data: weeklyData.income },
-      { name: 'Expense', data: weeklyData.expenses }
-    ],
-    colors: ['#10B981', '#EF4444'],
-    stroke: { curve: 'smooth', width: 3 },
-    xaxis: { categories: weeklyData.categories },
-    yaxis: { labels: { formatter: val => `$${val}` } },
-    grid: { borderColor: '#E5E7EB' },
-    legend: { position: 'top' },
-    tooltip: { theme: 'light' }
-  };
-  if (lineApex) {
-    lineApex.updateOptions({ series: lineOptions.series });
-  } else {
-    lineApex = new ApexCharts(lineChart.value, lineOptions);
-    lineApex.render();
-  }
+  if (!lineApex) {
+    lineApex = new ApexCharts(lineChart.value, {
+      chart: { type: 'line', height: 300, toolbar: { show: false } },
+      stroke: { curve: 'smooth', width: 3 },
+      colors: ['#10B981', '#EF4444'],
+      grid: { borderColor: '#E5E7EB' },
+      legend: { position: 'top' },
+      xaxis: { categories: weeklyData.value.categories },
+      series: [
+        { name: 'Income', data: weeklyData.value.income },
+        { name: 'Expense', data: weeklyData.value.expenses }
+      ]
+    })
 
-  // Donut chart
-  const donutOptions = {
-    chart: { type: 'donut', height: 300 },
-    series: expenseCategories.map(c => c.value),
-    labels: expenseCategories.map(c => c.name),
-    colors: ['#F59E0B', '#3B82F6', '#EF4444', '#10B981'],
-    legend: { position: 'bottom' },
-    tooltip: { theme: 'light' }
-  };
-  if (donutApex) {
-    donutApex.updateOptions({ series: donutOptions.series, labels: donutOptions.labels });
+    lineApex.render()
   } else {
-    donutApex = new ApexCharts(donutChart.value, donutOptions);
-    donutApex.render();
+    lineApex.updateOptions({
+      xaxis: { categories: weeklyData.value.categories }
+    })
+
+    lineApex.updateSeries([
+      { name: 'Income', data: weeklyData.value.income },
+      { name: 'Expense', data: weeklyData.value.expenses }
+    ])
   }
-};
+}
+
+const updateDonut = () => {
+  if (!donutChart.value || !expenseCategories.value.length) return
+
+  const rawValues = expenseCategories.value.map(i => Number(i.value))
+  const labels = expenseCategories.value.map(i => i.name)
+
+  const total = rawValues.reduce((a, b) => a + b, 0)
+  const series = rawValues.map(v => ((v / total) * 100).toFixed(2))
+
+  if (!donutApex) {
+    donutApex = new ApexCharts(donutChart.value, {
+      chart: { type: 'donut', height: 300 },
+      series: series.map(Number),
+      labels,
+
+      dataLabels: {
+        enabled: true,
+        formatter: val => `${val.toFixed(1)}%`
+      },
+
+      tooltip: {
+        y: {
+          formatter: (_, opts) => {
+            const index = opts.seriesIndex
+            return new Intl.NumberFormat('id-ID').format(rawValues[index])
+          }
+        }
+      },
+
+      legend: { position: 'bottom' }
+    })
+    donutApex.render()
+  } else {
+    donutApex.updateSeries(series.map(Number))
+    donutApex.updateOptions({ labels })
+  }
+}
+
+const fetchWeekly = async () => {
+  try {
+    const res = await transactionService.getWeekly()
+
+    const data = Array.isArray(res.data)
+      ? res.data
+      : res.data.original
+
+    if (!Array.isArray(data)) {
+      console.error('Weekly API is not returning array:', res.data)
+      return
+    }
+
+    weeklyData.value.income = Array(7).fill(0)
+    weeklyData.value.expenses = Array(7).fill(0)
+    weeklyData.value.categories = [...days]
+
+    data.forEach(item => {
+      const index = new Date(item.date).getDay()
+      weeklyData.value.income[index] += Number(item.income)
+      weeklyData.value.expenses[index] += Number(item.expense)
+    })
+
+    updateCharts()
+  } catch (err) {
+    console.error('Failed load weekly data', err)
+  }
+}
+
+const fetchExpenseCategories = async () => {
+  const res = await transactionService.getExpenseCategories()
+  expenseCategories.value = res.data
+  updateDonut()
+}
 
 onMounted(() => {
-  updateCharts();
+  fetchWeekly()
+  fetchExpenseCategories()
+  fetchDebts()
+  fetchWishlist()
 });
 
-watch([selectedMonth, selectedWeek], () => {
-  // TODO: Update weeklyData and expenseCategories dynamically
-  updateCharts();
-});
+// watch([selectedMonth, selectedWeek], () => {
+//   // TODO: Update weeklyData and expenseCategories dynamically
+//   fetchWeekly()
+// });
 </script>
