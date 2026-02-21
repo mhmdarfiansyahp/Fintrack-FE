@@ -65,7 +65,7 @@
     <!-- DataTables Section -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Debts -->
-      <div class="bg-white p-6 rounded-2xl shadow">
+      <!-- <div class="bg-white p-6 rounded-2xl shadow">
         <h3 class="text-lg font-semibold text-gray-700 mb-4">Debts</h3>
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
@@ -83,10 +83,10 @@
             </tr>
           </tbody>
         </table>
-      </div>
+      </div> -->
 
       <!-- Wishlist -->
-      <div class="bg-white p-6 rounded-2xl shadow">
+      <!-- <div class="bg-white p-6 rounded-2xl shadow">
         <h3 class="text-lg font-semibold text-gray-700 mb-4">Wishlist</h3>
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
@@ -102,12 +102,12 @@
             </tr>
           </tbody>
         </table>
-      </div>
+      </div> -->
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Stocks -->
-      <div class="bg-white p-6 rounded-2xl shadow">
+      <!-- <div class="bg-white p-6 rounded-2xl shadow">
         <h3 class="text-lg font-semibold text-gray-700 mb-4">Stocks</h3>
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
@@ -125,10 +125,10 @@
             </tr>
           </tbody>
         </table>
-      </div>
+      </div> -->
 
       <!-- Mutual Funds -->
-      <div class="bg-white p-6 rounded-2xl shadow">
+      <!-- <div class="bg-white p-6 rounded-2xl shadow">
         <h3 class="text-lg font-semibold text-gray-700 mb-4">Mutual Funds</h3>
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
@@ -144,7 +144,7 @@
             </tr>
           </tbody>
         </table>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
