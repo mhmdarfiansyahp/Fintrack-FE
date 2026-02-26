@@ -41,7 +41,10 @@ const windowWidth = ref(window.innerWidth)
 
 function handleResize() {
   windowWidth.value = window.innerWidth
-  isSidebarOpen.value = windowWidth.value >= 1024 // auto collapse saat kecil
+
+  if (windowWidth.value < 1024) {
+    isSidebarOpen.value = false
+  }
 }
 
 function toggleSidebar() {
