@@ -1,15 +1,16 @@
 <template>
-  <div class="flex min-h-screen overflow-hidden"> <!-- cegah body ikut geser -->
+  <router-view v-if="isLoginPage" />
+
+  <div v-else class="flex min-h-screen overflow-hidden">
+    <!-- cegah body ikut geser -->
     <!-- Sidebar -->
-    <Sidebar :isOpen="isSidebarOpen" :windowWidth="windowWidth" v-model:isOpen="isSidebarOpen"/>
+    <Sidebar :isOpen="isSidebarOpen" :windowWidth="windowWidth" v-model:isOpen="isSidebarOpen" />
 
     <!-- Main Content -->
     <div
       :class="[
         'flex flex-col flex-1 transition-all duration-300 min-w-0', // min-w-0 penting!
-        windowWidth >= 1024
-          ? (isSidebarOpen ? 'ml-64' : 'ml-20')
-          : 'ml-0',
+        windowWidth >= 1024 ? (isSidebarOpen ? 'ml-64' : 'ml-20') : 'ml-0',
       ]"
     >
       <Navbar
@@ -21,7 +22,8 @@
       <!-- konten tidak boleh overflow-x, biarkan anaknya yang scroll -->
       <main class="p-4 mt-14 w-full overflow-hidden">
         <NConfigProvider>
-          <div class="w-full overflow-x-auto"> <!-- container scroll -->
+          <div class="w-full overflow-x-auto">
+            <!-- container scroll -->
             <router-view />
           </div>
         </NConfigProvider>
@@ -35,6 +37,11 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import Sidebar from '@/views/layout/Sidebar.vue'
 import Navbar from '@/views/layout/Navbar.vue'
 import { NConfigProvider } from 'naive-ui'
+import { useRoute } from 'vue-router'
+import { computed } from 'vue'
+
+const route = useRoute()
+const isLoginPage = computed(() => route.name === 'Login')
 
 const isSidebarOpen = ref(true)
 const windowWidth = ref(window.innerWidth)
@@ -63,7 +70,8 @@ onUnmounted(() => {
 
 <style>
 /* mencegah geser halaman */
-html, body {
+html,
+body {
   overflow-x: hidden;
 }
 </style>

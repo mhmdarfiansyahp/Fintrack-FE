@@ -105,7 +105,8 @@ const openAddModal = () => {
     amount: null,
     due_date: null,
     status: 'pending',
-  }
+  } 
+  amountDisplay.value = ''
   showModal.value = true
 }
 

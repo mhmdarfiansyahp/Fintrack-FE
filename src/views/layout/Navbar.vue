@@ -1,5 +1,7 @@
 <script setup>
-import { Bell, User, Menu, X } from 'lucide-vue-next'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { Bell, User, Menu, X, LogOut } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   isSidebarOpen: Boolean,
@@ -7,6 +9,33 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['toggleSidebar'])
+
+const router = useRouter()
+const isDropdownOpen = ref(false)
+
+function toggleDropdown() {
+  isDropdownOpen.value = !isDropdownOpen.value
+}
+
+function logout() {
+  localStorage.removeItem('isLoggedIn')
+  router.push('/login')
+}
+
+// optional: klik luar untuk close dropdown
+function handleClickOutside(event) {
+  if (!event.target.closest('.profile-dropdown')) {
+    isDropdownOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <template>
@@ -23,26 +52,18 @@ const emit = defineEmits(['toggleSidebar'])
         class="p-2 text-gray-700 rounded-lg hover:bg-gray-100 transition"
         @click="emit('toggleSidebar')"
       >
-        <component
-          :is="windowWidth < 1024 && isSidebarOpen ? X : Menu"
-          class="w-6 h-6"
-        />
+        <component :is="windowWidth < 1024 && isSidebarOpen ? X : Menu" class="w-6 h-6" />
       </button>
 
       <!-- Logo hanya tampil di mobile/tablet -->
-      <span
-        v-if="windowWidth < 1024"
-        class="text-lg font-bold text-gray-800 select-none"
-      >
+      <span v-if="windowWidth < 1024" class="text-lg font-bold text-gray-800 select-none">
         Fintrack
       </span>
     </div>
 
     <!-- Right Section -->
     <div class="flex items-center gap-4 pr-2">
-      <button
-        class="relative p-2 text-gray-600 rounded-full hover:bg-gray-100 transition"
-      >
+      <button class="relative p-2 text-gray-600 rounded-full hover:bg-gray-100 transition">
         <Bell class="w-5 h-5" />
         <span
           class="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center"
@@ -51,14 +72,30 @@ const emit = defineEmits(['toggleSidebar'])
         </span>
       </button>
 
-      <button
-        class="flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-gray-100 transition"
-      >
-        <User class="w-6 h-6 text-gray-700" />
-        <span class="hidden md:inline text-sm font-medium text-gray-800">
-          Admin
-        </span>
-      </button>
+      <!-- WRAPPER RELATIVE -->
+      <div class="relative profile-dropdown">
+        <button
+          @click.stop="toggleDropdown"
+          class="flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-gray-100 transition"
+        >
+          <User class="w-6 h-6 text-gray-700" />
+          <span class="hidden md:inline text-sm font-medium text-gray-800"> Admin </span>
+        </button>
+
+        <!-- Dropdown -->
+        <div
+          v-if="isDropdownOpen"
+          class="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50"
+        >
+          <button
+            @click="logout"
+            class="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100 transition"
+          >
+            <LogOut class="w-4 h-4" />
+            Logout
+          </button>
+        </div>
+      </div>
     </div>
   </nav>
 </template>

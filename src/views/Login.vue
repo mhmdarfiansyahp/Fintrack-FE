@@ -45,12 +45,12 @@ export default {
   },
   methods: {
     handleLogin() {
-      const dummyEmail = "admin@fintrack.com"
+      const dummyEmail = "admin@gmail.com"
       const dummyPassword = "123456"
 
       if (this.email === dummyEmail && this.password === dummyPassword) {
         localStorage.setItem("isLoggedIn", "true")
-        this.$router.push("/dashboard")
+        this.$router.push("/")
       } else {
         this.error = "Email atau password salah!"
       }
